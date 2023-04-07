@@ -1,0 +1,18 @@
+[package]
+name = "lunarsensor-rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.70"
+queues = "1.1.0"
+rev_buf_reader = "0.3.0"
+rppal = "0.14.1"
+
+[dependencies.rocket]
+version = "0.5.0-rc.3"
+features = ["json"]
+
+[dependencies.rocket-slogger]
+version = "0.1.0"
+features = ["terminal"]
