@@ -1,16 +1,17 @@
-#[macro_use] extern crate rocket;
+#[macro_use]
+extern crate rocket;
 
-use rocket::serde::{Serialize, json::Json};
-use rocket::tokio::time::{Duration, interval};
-use rocket::response::stream::{Event, EventStream};
-use rocket::State;
-use rocket::response::status::Custom;
 use rocket::http::Status;
+use rocket::response::status::Custom;
+use rocket::response::stream::{Event, EventStream};
+use rocket::serde::{json::Json, Serialize};
+use rocket::tokio::time::{interval, Duration};
+use rocket::State;
 
 use rocket_slogger::Slogger;
 
 mod hardware;
-use hardware::{LockableSensor, setup_sensor, read_sensor};
+use hardware::{read_sensor, setup_sensor, LockableSensor};
 
 #[derive(Serialize)]
 #[serde(crate = "rocket::serde")]
@@ -29,10 +30,12 @@ fn lux_to_response(lux: f32) -> SensorResponse {
 }
 
 #[get("/sensor/ambient_light")]
-fn ambient_light(managed_sensor: &State<LockableSensor>) -> Result<Json<SensorResponse>, Custom<String>> {
+fn ambient_light(
+    managed_sensor: &State<LockableSensor>,
+) -> Result<Json<SensorResponse>, Custom<String>> {
     match read_sensor(&managed_sensor) {
         Ok(lux) => Ok(Json(lux_to_response(lux))),
-        Err(e) => Err(Custom(Status::InternalServerError, e.to_string()))
+        Err(e) => Err(Custom(Status::InternalServerError, e.to_string())),
     }
 }
 
@@ -50,12 +53,20 @@ async fn events(managed_sensor: &State<LockableSensor>) -> EventStream![Event + 
     }
 }
 
+#[get("/logs")]
+fn logs() -> Result<String, Custom<String>> {
+    match std::fs::read_to_string("/var/log/lunarsensor/lunarsensor") {
+        Ok(v) => Ok(v),
+        Err(e) => Err(Custom(Status::InternalServerError, e.to_string())),
+    }
+}
+
 #[launch]
 fn rocket() -> _ {
     let log_fairing = Slogger::new_terminal_logger();
-    
+
     let lockable_sensor = match setup_sensor() {
-        Ok(v) => v,  
+        Ok(v) => v,
         Err(e) => {
             println!("Sensor not initialized: {}", e);
             panic!();
@@ -66,4 +77,5 @@ fn rocket() -> _ {
         .manage(lockable_sensor)
         .mount("/", routes![ambient_light])
         .mount("/", routes![events])
+        .mount("/", routes![logs])
 }
