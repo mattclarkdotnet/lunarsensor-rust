@@ -1,5 +1,4 @@
 # TODO
-* make logs available at an endpoint
 * add motivation and description to README
 
 # Rust setup for cross compilation to armv6
